@@ -1,100 +1,138 @@
-<<<<<<< HEAD
 <?php
+ini_set('display_errors', 1);
+error_reporting(E_ALL);
 
-class EstadoCivil {
+require_once $_SERVER['DOCUMENT_ROOT'] . '/eysphp/config/database.php';
+require_once $_SERVER['DOCUMENT_ROOT'] . '/eysphp/app/models/EstadoCivil.php';
 
-    private $conn;
-    private $table = "estado_civil";
+class EstadoCivilController {
 
-    public $id;
-    public $descripcion;
+    private $estado;
+    private $db;
 
-    public function __construct($db){
-        $this->conn = $db;
-    }
-
-    public function read(){
-
-        $query = "SELECT * FROM estado_civil";
-        $stmt = $this->conn->prepare($query);
-        $stmt->execute();
-
-        return $stmt;
-    }
-
-    public function create(){
-
-        $query = "INSERT INTO estado_civil (descripcion) VALUES (:descripcion)";
-        $stmt = $this->conn->prepare($query);
-
-        $stmt->bindParam(":descripcion",$this->descripcion);
-
-        return $stmt->execute();
-    }
-
-}
-=======
-<?php
-class EstadoCivil {
-    private $conn;
-    private $table = "estado_civil";
-
-    public $id;
-    public $nombre;
-
-    public function __construct($db) {
-        $this->conn = $db;
+    public function __construct() {
+        $this->db = (new Database())->getConnection();
+        $this->estado = new EstadoCivil($this->db);
     }
 
     // LISTAR
-    public function read() {
-        $query = "SELECT * FROM " . $this->table;
-        $stmt = $this->conn->prepare($query);
-        $stmt->execute();
-        return $stmt;
+    public function index() {
+        $estados = $this->estado->read();
+        require_once '../app/views/estadocivil/index.php';
     }
 
     // CREAR
     public function create() {
-        $query = "INSERT INTO " . $this->table . " (nombre) VALUES (:nombre)";
-        $stmt = $this->conn->prepare($query);
 
-        $stmt->bindParam(":nombre", $this->nombre);
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
-        return $stmt->execute();
+            if (isset($_POST['descripcion'])) {
+
+                $this->estado->descripcion = $_POST['descripcion'];
+
+                if ($this->estado->create()) {
+                    echo "Estado civil creado correctamente";
+                } else {
+                    echo "Error al crear";
+                }
+
+            } else {
+                echo "Faltan datos";
+            }
+
+        }
+
+        die();
     }
 
-    // OBTENER UNO
-    public function readOne() {
-        $query = "SELECT * FROM " . $this->table . " WHERE id = :id LIMIT 1";
-        $stmt = $this->conn->prepare($query);
+    // EDITAR
+    public function edit($id) {
 
-        $stmt->bindParam(":id", $this->id);
-        $stmt->execute();
+        $this->estado->id = $id;
+        $estado = $this->estado->readOne();
 
-        return $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$estado) {
+            die("No existe el registro");
+        }
+
+        require_once '../app/views/estadocivil/edit.php';
     }
 
     // ACTUALIZAR
     public function update() {
-        $query = "UPDATE " . $this->table . " SET nombre = :nombre WHERE id = :id";
-        $stmt = $this->conn->prepare($query);
 
-        $stmt->bindParam(":nombre", $this->nombre);
-        $stmt->bindParam(":id", $this->id);
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
-        return $stmt->execute();
+            if (isset($_POST['descripcion'], $_POST['id'])) {
+
+                $this->estado->descripcion = $_POST['descripcion'];
+                $this->estado->id = $_POST['id'];
+
+                if ($this->estado->update()) {
+                    echo "Actualizado correctamente";
+                } else {
+                    echo "Error al actualizar";
+                }
+
+            } else {
+                echo "Faltan datos";
+            }
+
+        }
+
+        die();
     }
 
     // ELIMINAR
     public function delete() {
-        $query = "DELETE FROM " . $this->table . " WHERE id = :id";
-        $stmt = $this->conn->prepare($query);
 
-        $stmt->bindParam(":id", $this->id);
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
-        return $stmt->execute();
+            if (isset($_POST['id'])) {
+
+                $this->estado->id = $_POST['id'];
+
+                if ($this->estado->delete()) {
+                    echo "Eliminado correctamente";
+                } else {
+                    echo "Error al eliminar";
+                }
+
+            } else {
+                echo "Faltan datos";
+            }
+
+        }
+
+        die();
     }
 }
-?>
->>>>>>> c1ea4bca80c64c135080060c809e60c267879992
+
+
+// RUTEO
+if (isset($_GET['action'])) {
+
+    $controller = new EstadoCivilController();
+
+    switch ($_GET['action']) {
+
+        case 'create':
+            $controller->create();
+            break;
+
+        case 'update':
+            $controller->update();
+            break;
+
+        case 'delete':
+            $controller->delete();
+            break;
+
+        default:
+            echo "Acción no válida";
+            break;
+    }
+
+} else {
+    echo "No se especificó acción";
+}
